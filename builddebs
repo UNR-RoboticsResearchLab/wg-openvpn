@@ -18,19 +18,49 @@ wget http://archive.ubuntu.com/ubuntu/pool/main/o/openvpn/openvpn_2.2.1-8ubuntu1
 #get required code out of the box
 tar xf openvpn_2.2.1.orig.tar.gz
 
-# openvpn requires to be patched	 so it can build past automake version 1.11.1
 cp -rf ../changes/* .
-cp debian/patches/configure_ac.patch .
-patch -i configure_ac.patch -p0
+#cp debian/patches/configure_ac.patch .
+
+pushd $SRCDIR
+patch -i ../debian/patches/floating_tls.patch --ignore-whitespace
+patch -i ../debian/patches/wg-ping.patch
+popd
+
+# openvpn requires to be patched	 so it can build past automake version 1.11.1
+patch -i debian/patches/configure_ac.patch -p0
 
 cp -rf debian $SRCDIR
+
 tar xf openvpn_2.2.1-8ubuntu1.debian.tar.gz
+
 # Copy all patches but exclude jjo
 rsync --exclude=jjo-ipv6-support.patch debian/patches/* $SRCDIR/debian/patches/
 sed -i '/jjo-ipv6-support.patch/d' $SRCDIR/debian/patches/series
 # Copy rest of deb stuff
-rsync debian/openvpn* debian/update-resolv-conf debian/source debian/dirs debian/examples debian/default $SRCDIR/debian/
+rsync debian/openvpn* debian/templates debian/update-resolv-conf debian/config debian/source debian/dirs debian/examples debian/default debian/prerm debian/postinst $SRCDIR/debian/
 sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/dirs
+sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/config
+sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/openvpn.if-up.d
+sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/openvpn.if-down.d
+sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/prerm
+sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/templates
+sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/openvpn.init.d
+
+# Apply wg-openvpn patch 
+pushd $SRCDIR
+echo "=== wg-openvpn patch ==="
+pwd
+patch -i ../debian/patches/wg-openvpn.patch -p1
+popd
+
+exit
+
+
+cp $SRCDIR/debian/openvpn.bash_completion $SRCDIR/debian/wg-openvpn/etc/bash_completion.d
+sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/wg-openvpn/etc/init.d/wg-openvpn
+sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/wg-openvpn/etc/network/if-down.d/wg-openvpn
+sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/wg-openvpn/etc/network/if-up.d/wg-openvpn
+
 
 #rsync --exclude debian/control --exclude debian/rules --exclude debian/patches --exclude debian/changelog debian/* $SRCDIR/debian/
 

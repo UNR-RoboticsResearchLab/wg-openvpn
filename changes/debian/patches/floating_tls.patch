@@ -181,16 +181,15 @@
  #endif
  #endif
  
-@@ -1909,6 +1914,9 @@
-       MUST_BE_UNDEF (transition_window);
-       MUST_BE_UNDEF (tls_auth_file);
-       MUST_BE_UNDEF (single_session);
+ #ifdef ENABLE_PUSH_PEER_INFO
+      MUST_BE_UNDEF (push_peer_info);
+ #endif
 +#ifdef FLOATING_TLS
 +      MUST_BE_UNDEF (floating_tls);
 +#endif
        MUST_BE_UNDEF (tls_exit);
        MUST_BE_UNDEF (crl_file);
-       MUST_BE_UNDEF (key_method);
+       MUST_BE_UNDEF (key_method); 
 @@ -2339,6 +2347,11 @@
  	  buf_printf (&out, ",no-iv");
        }
@@ -204,9 +203,9 @@
    /*
     * SSL Options
 @@ -5413,6 +5426,13 @@
-       VERIFY_PERMISSION (OPT_P_GENERAL);
-       options->single_session = true;
-     }
+      options->push_peer_info = true;
+    } 
+ #endif
 +#ifdef FLOATING_TLS
 +  else if (streq (p[0], "floating-tls"))
 +    {
@@ -219,17 +218,18 @@
        VERIFY_PERMISSION (OPT_P_GENERAL);
 --- a/options.h
 +++ b/options.h
-@@ -168,6 +168,10 @@
-   bool genkey;
- #endif
+@@ -160,6 +160,11 @@
+  /* enable forward compatibility for post-2.1 features */
+  bool forward_compatible;
  
++
 +#ifdef FLOATING_TLS
 +  bool floating_tls;
 +#endif
 +
-   /* Networking parms */
-   struct connection_entry ce;
- 
+  /* persist parms */
+  bool persist_config;
+  int persist_mode;
 --- a/ssl.c
 +++ b/ssl.c
 @@ -4160,7 +4160,12 @@
