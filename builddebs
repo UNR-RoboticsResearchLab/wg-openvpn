@@ -53,15 +53,6 @@ pwd
 patch -i ../debian/patches/wg-openvpn.patch -p1
 popd
 
-exit
-
-
-cp $SRCDIR/debian/openvpn.bash_completion $SRCDIR/debian/wg-openvpn/etc/bash_completion.d
-sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/wg-openvpn/etc/init.d/wg-openvpn
-sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/wg-openvpn/etc/network/if-down.d/wg-openvpn
-sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/wg-openvpn/etc/network/if-up.d/wg-openvpn
-
-
 #rsync --exclude debian/control --exclude debian/rules --exclude debian/patches --exclude debian/changelog debian/* $SRCDIR/debian/
 
 #(cd $SRCDIR; zcat ../openvpn_2.2.1-8ubuntu1.debian.tar.gz | patch -p1)
