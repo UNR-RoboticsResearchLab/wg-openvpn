@@ -181,6 +181,7 @@
  #endif
  #endif
  
+@@ -1909,6 +1914,9 @@
  #ifdef ENABLE_PUSH_PEER_INFO
       MUST_BE_UNDEF (push_peer_info);
  #endif
