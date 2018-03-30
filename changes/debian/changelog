@@ -1,8 +1,26 @@
+wg-openvpn (2.1~rc19-2ubuntu1) UNRELEASED; urgency=medium
+
+  [ TheDash ]
+  * Added build script
+  * updated to reflect true structure
+  * Added code to make this fucking thing compile god damn this was so undocumented
+  * Finally works and builds a deb
+
+  [ David Feil-Seifer ]
+  * updated patches/builddebs files so that patches correctly apply on ubuntu-trusty branch
+  * removed unnecessary regex cmds
+  * fixes to floating_tls patch to account for missing chunks; removed debian/templates file
+
+ -- TheDash <dash@clearpathrobotics.com>  Fri, 30 Mar 2018 10:37:51 -0700
+
 wg-openvpn (2.1~rc19-2) karmic; urgency=low
 
+  [ Blaise Gassend ]
   * First version of wg-openvpn with a changelog. Now reselects the
     floating_tls prefix when restarting a connection, to make sure that we
     aren't relying on any state from the connection that had failed.
+
+  [ David Feil-Seifer ]
 
  -- Blaise Gassend <blaise@willowgarage.com>  Thu, 11 Nov 2010 13:25:00 -0800
 
