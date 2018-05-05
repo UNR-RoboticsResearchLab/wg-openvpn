@@ -1,4 +1,11 @@
-wg-openvpn (2.1~rc19-2ubuntu1) UNRELEASED; urgency=medium
+wg-openvpn (2.1~rc20-2) xenial; urgency=medium
+
+  [ David Feil-Seifer ]
+  * fixed libssl package version for xenial distribution
+
+ -- David Feil-Seifer <dave@cse.unr.edu>  Sat, 5 May 2018 11:13:51 -0700
+
+wg-openvpn (2.1~rc20-1) trusty; urgency=medium
 
   [ TheDash ]
   * Added build script
