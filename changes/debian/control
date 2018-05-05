@@ -8,7 +8,7 @@ Standards-Version: 3.8.2
 
 Package: wg-openvpn
 Architecture: any
-Depends: debconf | debconf-2.0, ${shlibs:Depends}, ${misc:Depends}, libssl0.9.8 (>= 0.9.8g), openssl-blacklist (>= 0.3), openvpn-blacklist, lsb-base (>= 3.2)
+Depends: debconf | debconf-2.0, ${shlibs:Depends}, ${misc:Depends}, libssl1.0.0, openssl-blacklist (>= 0.3), openvpn-blacklist, lsb-base (>= 3.2)
 Recommends: net-tools
 Suggests: openssl, resolvconf
 Description: virtual private network daemon
