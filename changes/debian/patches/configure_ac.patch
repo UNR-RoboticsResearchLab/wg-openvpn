@@ -1,20 +1,11 @@
---- openvpn-2.2.1/configure.ac	2015-09-10 14:45:09.303444902 -0400
-+++ openvpn-2.2.1/configure.ac	2015-09-10 14:43:21.675446799 -0400
-@@ -26,13 +26,15 @@
- AC_PREREQ(2.50)
- 
- m4_include(version.m4)
--AC_INIT([OpenVPN], [PRODUCT_VERSION], [openvpn-users@lists.sourceforge.net], [openvpn])
-+#AC_INIT([OpenVPN], [PRODUCT_VERSION], [openvpn-users@lists.sourceforge.net], [openvpn])
-+AC_INIT(openvpn, [$PACKAGE_VERSION])
- AM_CONFIG_HEADER(config.h)
- AC_CONFIG_SRCDIR(syshead.h)
- 
- dnl Guess host type.
+--- openvpn-2.4.7.orig/configure.ac	2019-02-20 04:28:23.000000000 -0800
++++ openvpn-2.4.7/configure.ac	2021-03-03 22:48:46.663037694 -0800
+@@ -54,7 +54,7 @@
+                 awk '{split ($NF,a,"."); if (a[1] == 1 && a[2] >= 12) { print "serial-tests" }}'
+     ])
+ ])
+-AM_INIT_AUTOMAKE(foreign serial_tests) dnl NB: Do not [quote] this parameter.
++AM_INIT_AUTOMAKE(foreign serial_tests subdir-objects) dnl NB: Do not [quote] this parameter.
  AC_CANONICAL_HOST
--AM_INIT_AUTOMAKE(openvpn, [$PACKAGE_VERSION])
-+AM_INIT_AUTOMAKE
-+#AM_INIT_AUTOMAKE(openvpn, [$PACKAGE_VERSION])
+ AC_USE_SYSTEM_EXTENSIONS
  
- AC_ARG_WITH(cygwin-native,
- 	[  --with-cygwin-native              Compile native win32],

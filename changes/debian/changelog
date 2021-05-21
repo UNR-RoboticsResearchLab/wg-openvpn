@@ -1,3 +1,11 @@
+wg-openvpn (2.4.7) focal; urgency=low
+
+  * First version of wg-openvpn with a changelog. Now reselects the
+    floating_tls prefix when restarting a connection, to make sure that we
+    aren't relying on any state from the connection that had failed.
+
+ -- Blaise Gassend <blaise@willowgarage.com>  Thu, 11 Nov 2010 13:25:00 -0800
+
 wg-openvpn (2.1~rc19-2) karmic; urgency=low
 
   * First version of wg-openvpn with a changelog. Now reselects the

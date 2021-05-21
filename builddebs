@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# verify install of build packages
+sudo apt install libsystemd-dev
+
 
 rm -rf build
 mkdir build
@@ -7,44 +10,56 @@ cd build
 
 . /etc/lsb-release	
 
-SRCDIR=openvpn-2.2.1
+SRCDIR=`pwd`/openvpn-2.4.7
 #apt-get source openvpn=2.2.1
 
 # This gets the source 
-wget http://archive.ubuntu.com/ubuntu/pool/main/o/openvpn/openvpn_2.2.1-8ubuntu1.dsc
-wget http://archive.ubuntu.com/ubuntu/pool/main/o/openvpn/openvpn_2.2.1.orig.tar.gz
-wget http://archive.ubuntu.com/ubuntu/pool/main/o/openvpn/openvpn_2.2.1-8ubuntu1.debian.tar.gz
+wget http://archive.ubuntu.com/ubuntu/pool/main/o/openvpn/openvpn_2.4.7-1ubuntu2.20.04.2.dsc
+wget http://archive.ubuntu.com/ubuntu/pool/main/o/openvpn/openvpn_2.4.7.orig.tar.xz
+wget http://archive.ubuntu.com/ubuntu/pool/main/o/openvpn/openvpn_2.4.7-1ubuntu2.20.04.2.debian.tar.xz
 
 #get required code out of the box
-tar xf openvpn_2.2.1.orig.tar.gz
+tar xf openvpn_2.4.7.orig.tar.xz
+
+###################################
 
 cp -rf ../changes/* .
-#cp debian/patches/configure_ac.patch .
 
 pushd $SRCDIR
-patch -i ../debian/patches/floating_tls.patch --ignore-whitespace
-patch -i ../debian/patches/wg-ping.patch
+patch -i ../../floating_tls.patch -p1 --ignore-whitespace
+popd
+pushd $SRCDIR/src/openvpn
+patch -i ../../../debian/patches/wg-ping.patch
 popd
 
 # openvpn requires to be patched	 so it can build past automake version 1.11.1
-patch -i debian/patches/configure_ac.patch -p0
+#patch -i debian/patches/configure_ac.patch -p0
+patch $SRCDIR/configure.ac < debian/patches/configure_ac.patch -p1
+
 
 cp -rf debian $SRCDIR
 
-tar xf openvpn_2.2.1-8ubuntu1.debian.tar.gz
+###################################
 
-# Copy all patches but exclude jjo
-rsync --exclude=jjo-ipv6-support.patch debian/patches/* $SRCDIR/debian/patches/
-sed -i '/jjo-ipv6-support.patch/d' $SRCDIR/debian/patches/series
+pushd $SRCDIR
+tar xf ../openvpn_2.4.7-1ubuntu2.20.04.2.debian.tar.xz
+popd
+
+# Copy all patches but exclude jjo (no longer present in 2.4.7)
+#rsync debian/patches/* $SRCDIR/debian/patches/
+#sed -i '/jjo-ipv6-support.patch/d' $SRCDIR/debian/patches/series
+
+###################################
+
 # Copy rest of deb stuff
 # debian/templates
-rsync debian/openvpn* debian/update-resolv-conf debian/config debian/source debian/dirs debian/examples debian/default debian/prerm debian/postinst $SRCDIR/debian/
+#rsync debian/openvpn* debian/update-resolv-conf debian/config debian/source debian/dirs debian/examples debian/default debian/prerm debian/postinst $SRCDIR/debian/
 sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/dirs
 sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/config
 sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/openvpn.if-up.d
 sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/openvpn.if-down.d
 sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/prerm
-#sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/templates
+sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/templates
 sed -i 's/openvpn/wg-openvpn/g' $SRCDIR/debian/openvpn.init.d
 
 # Apply wg-openvpn patch 
@@ -59,7 +74,12 @@ popd
 #(cd $SRCDIR; zcat ../openvpn_2.2.1-8ubuntu1.debian.tar.gz | patch -p1)
 #cp -r ../debian/patches/* ./debian/patches/
 # copy the changes/debian to openvpn
-#cp -r ../changes/* .
+pushd $SRCDIR
+cp -r ../../changes/debian/* debian/
+popd
+# sed for rules to make dest package wg-openvpn
+#sed -i 's/openvpn*openvpn/openvpn*wg-openvpn/g' $SRCDIR/debian/rules
+
 
 # build
 cd $SRCDIR

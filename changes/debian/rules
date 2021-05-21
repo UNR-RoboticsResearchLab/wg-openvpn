@@ -1,123 +1,87 @@
 #!/usr/bin/make -f
-# Sample debian/rules that uses debhelper.
-# GNU copyright 1997 to 1999 by Joey Hess.
 
-# Uncomment this to turn on verbose mode.
+ifeq ($(DEB_HOST_ARCH_OS), kfreebsd)
+# Avoid the /sbin/route wrapper which doesn't provide FreeBSD CLI as expected
+ENV_VARS	:= IFCONFIG=/sbin/ifconfig ROUTE=/lib/freebsd/route
+EXTRA_ARGS	:=
+else
+ENV_VARS	:= SYSTEMD_ASK_PASSWORD=/bin/systemd-ask-password IFCONFIG=/sbin/ifconfig ROUTE=/sbin/route IPROUTE=/sbin/ip SYSTEMD_UNIT_DIR=/lib/systemd/system TMPFILES_DIR=/usr/lib/tmpfiles.d
+EXTRA_ARGS	:= --enable-systemd --enable-iproute2
+endif
+
 #export DH_VERBOSE=1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
-include /usr/share/quilt/quilt.make
+%:
+	dh $@
 
-
-# These are used for cross-compiling and for saving the configure script
-# from having to guess our platform (since we know it already)
-DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
-DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
-
-
-ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-	CFLAGS += -g
-endif
-ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
-	INSTALL_PROGRAM += -s
-endif
-
-config.status: $(QUILT_STAMPFN)
-	dh_testdir
-	# Add here commands to configure the package.
-	automake --add-missing
-	autoreconf -f
-	./configure --enable-pthread --enable-password-save --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --mandir=\$${prefix}/share/man --with-ifconfig-path=/sbin/ifconfig --with-route-path=/sbin/route
+override_dh_auto_configure:
+	-test -f tests/t_client.sh.not || mv tests/t_client.sh tests/t_client.sh.not
+	$(ENV_VARS) dh_auto_configure -- $(shell dpkg-buildflags --export=configure) --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --mandir=\$${prefix}/share/man --includedir=\$${prefix}/include/openvpn --enable-pkcs11 --enable-x509-alt-username $(EXTRA_ARGS)
 
 
-build: build-stamp
+override_dh_auto_build:
+	dh_auto_build
+	# The one shipped in the tarball gets rebuild (chaging /bin/sh in some cases)
+	#sed -i -e '1s%.*%#!/bin/sh%' tests/t_client.sh
+	# make plugins
+	# $(MAKE) -C plugin/auth-pam/ $(shell dpkg-buildflags --export=configure)
+	# $(MAKE) -C plugin/down-root/ $(shell dpkg-buildflags --export=configure)
 
-build-stamp: config.status
-	dh_testdir
+# we may not want to run dh_auto_test
+#override_dh_auto_test:
 
-	# Add here commands to compile the package.
-	$(MAKE)
-	#make plugins
-	$(MAKE) -C plugin/auth-pam/
-	$(MAKE) -C plugin/down-root/
+override_dh_auto_clean:
+	# These two get deleted on "make clean", but come in the tarball
+	# hack to keep them around after "make clean"
+	-test -f distro/rpm/openvpn.spec.not || mv distro/rpm/openvpn.spec distro/rpm/openvpn.spec.not
+	-test -f tests/t_client.sh.not || mv tests/t_client.sh tests/t_client.sh.not
+	dh_auto_clean
+	-test -f distro/rpm/openvpn.spec.not && mv distro/rpm/openvpn.spec.not distro/rpm/openvpn.spec
+	-test -f tests/t_client.sh.not && mv tests/t_client.sh.not tests/t_client.sh
+	# clean plugins
+	# $(MAKE) -C plugin/auth-pam/ clean
+	# $(MAKE) -C plugin/down-root/ clean
 
-	touch build-stamp
+override_dh_clean:
+	dh_clean -X win/openvpn.nsi.orig
 
-clean: unpatch
-	dh_testdir
-	dh_testroot
-	rm -f build-stamp 
-
-	# Add here commands to clean up after the build process.
-	[ ! -f Makefile ] || $(MAKE) distclean
-
-	#clean plugins
-	$(MAKE) -C plugin/auth-pam/ clean
-	$(MAKE) -C plugin/down-root/ clean
-
-	dh_clean
-
-install: build
-	dh_testdir
-	dh_testroot
-	dh_installdirs
-
-	# Add here commands to install the package into debian/openvpn
-	$(MAKE) install prefix=$(CURDIR)/debian/wg-openvpn/usr
-	install -m 755 sample-scripts/verify-cn $(CURDIR)/debian/wg-openvpn/usr/share/openvpn
+override_dh_auto_install:
+	dh_auto_install
+	install -m 755 sample/sample-scripts/verify-cn $(CURDIR)/debian/wg-openvpn/usr/share/openvpn
 	install -m 755 debian/openvpn.if-up.d $(CURDIR)/debian/wg-openvpn/etc/network/if-up.d/openvpn
 	install -m 755 debian/openvpn.if-down.d $(CURDIR)/debian/wg-openvpn/etc/network/if-down.d/openvpn
-	#install plugins
-	#install -m 644 plugin/auth-pam/openvpn-auth-pam.so $(CURDIR)/debian/openvpn/usr/lib/openvpn
-	#install -m 644 plugin/down-root/openvpn-down-root.so $(CURDIR)/debian/openvpn/usr/lib/openvpn
-	#install -m 644 plugin/auth-pam/README $(CURDIR)/debian/openvpn/usr/share/doc/openvpn/README.auth-pam
-	#install -m 644 plugin/down-root/README $(CURDIR)/debian/openvpn/usr/share/doc/openvpn/README.down-root
-	#intall plugin headers 
-	#install -m 644 openvpn-plugin.h $(CURDIR)/debian/openvpn/usr/include/openvpn/openvpn-plugin.h
-	#resolvconf script
+	# remove unwanted plugin files
+	$(RM) $(CURDIR)/debian/openvpn/usr/lib/$(DEB_HOST_GNU_TYPE)/openvpn/plugins/*.la
+	# resolvconf script
 	install -m 755 debian/update-resolv-conf $(CURDIR)/debian/wg-openvpn/etc/wg-openvpn/update-resolv-conf
 	# bash completion
-	install -m 644 debian/openvpn.bash_completion $(CURDIR)/debian/wg-openvpn/etc/bash_completion.d/openvpn
+	install -m 644 debian/openvpn.bash_completion $(CURDIR)/debian/wg-openvpn/usr/share/bash-completion/completions/openvpn
 	for src in `find debian/wg-openvpn -name openvpn` debian/wg-openvpn/usr/share/man/man8/openvpn.8 debian/openvpn.init.d; do \
 	  dst=`echo $$src|sed 's=/openvpn=/wg-openvpn='`; \
 	  echo Renaming $$src to $$dst; \
 	  mv $$src $$dst; \
 	done
 
-# Build architecture-independent files here.
-binary-indep: build install
-# We have nothing to do by default.
+	# append Debian's tmpfiles conf to upstream's on Linux (systemd)
+ifeq ($(DEB_HOST_ARCH_OS), linux)
+	cat debian/openvpn.conf >> $(CURDIR)/debian/wg-openvpn/usr/lib/tmpfiles.d/openvpn.conf
+endif
+	$(RM) $(CURDIR)/debian/openvpn/usr/share/doc/openvpn/COPYING
 
-# Build architecture-dependent files here.
-binary-arch: build install
-	dh_testdir
-	dh_testroot
-	dh_installdebconf	
-	dh_installdocs
+override_dh_installexamples:
 	dh_installexamples
 	## remove windoze stuff
-	rm -rf $(CURDIR)/debian/openvpn/usr/share/doc/openvpn/examples/easy-rsa/Windows
-	dh_installmenu
-#	dh_installlogrotate
-#	dh_installemacsen
-#	dh_installpam
-#	dh_installmime
-	dh_installinit --no-start -- defaults 16 80
-	dh_installcron
-	dh_installman
-	dh_installinfo
-#	dh_undocumented
-	dh_installchangelogs ChangeLog
-	dh_link
-	dh_strip
-	dh_compress --exclude=openssl.cnf --exclude=pkitool
-	dh_fixperms
-#	dh_makeshlibs
-	dh_installdeb
-#	dh_perl
-	dh_shlibdeps
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb
+	$(RM) -r $(CURDIR)/debian/wg-openvpn/usr/share/doc/openvpn/examples/easy-rsa/Windows
+	$(RM) -r $(CURDIR)/debian/wg-openvpn/usr/share/doc/openvpn/sample
+	# remove gitignore file from samples
+	$(RM) $(CURDIR)/debian/wg-openvpn/usr/share/doc/openvpn/examples/sample-keys/.gitignore
 
-binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install 
+override_dh_installinit:
+	dh_installinit --no-start -- defaults 16 80
+
+override_dh_compress:
+	dh_compress --exclude=.cnf --exclude=pkitool
+
+override_dh_installsystemd:
+	dh_installsystemd --restart-after-upgrade
